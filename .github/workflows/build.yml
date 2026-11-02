@@ -1,0 +1,92 @@
+name: Build geosite.dat and Clash Meta MRS
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 21 * * *"
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**/README.md"
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare latest tags and set variables
+        run: |
+          upstreamLatestTag=$(curl -sSL --connect-timeout 5 --retry 5 -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/v2fly/domain-list-community/releases/latest | grep "tag_name" | cut -d\" -f4)
+          thisLatestTag=$(curl -sSL --connect-timeout 5 --retry 5 -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }}/releases/latest | grep "tag_name" | cut -d\" -f4)
+          if [[ $upstreamLatestTag != $thisLatestTag ]]; then
+            echo "NeedToSync=true" >> $GITHUB_ENV
+          fi
+          echo "RELEASE_NAME=$upstreamLatestTag" >> $GITHUB_ENV
+          echo "TAG_NAME=$upstreamLatestTag" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Checkout codebase
+        uses: actions/checkout@v7
+        if: ${{ env.NeedToSync }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        if: ${{ env.NeedToSync }}
+        with:
+          go-version-file: ./go.mod
+
+      - name: Checkout v2fly/domain-list-community
+        if: ${{ env.NeedToSync }}
+        uses: actions/checkout@v7
+        with:
+          repository: v2fly/domain-list-community
+          path: domain-list-community
+
+      - name: Append attribute rules
+        if: ${{ env.NeedToSync }}
+        run: |
+          echo "include:geolocation-!cn @cn" >> ./domain-list-community/data/cn
+          echo "include:geolocation-cn @!cn" >> ./domain-list-community/data/geolocation-\!cn
+
+      - name: Generate categorized rule lists
+        if: ${{ env.NeedToSync }}
+        run: |
+          go run ./ \
+            --datapath=./domain-list-community/data \
+            --exportlists=category-ads-all,tld-cn,cn,geolocation-cn,tld-!cn,geolocation-!cn,private,apple,icloud,google,steam
+
+      - name: Generate sha256 hashsum
+        if: ${{ env.NeedToSync }}
+        run: |
+          cd publish || exit 1
+          sha256sum geosite.dat > geosite.dat.sha256sum
+          sha256sum *.mrs > mrs.sha256sum
+
+      - name: Git push assets to "release" branch
+        if: ${{ env.NeedToSync }}
+        run: |
+          cd publish || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add .
+          git commit -m "${{ env.RELEASE_NAME }}"
+          git remote add publish "https://${{ github.actor }}:${{ secrets.CLASH_RULE_PAT }}@github.com/${{ github.repository }}"
+          git push -f publish release
+
+      - name: Release and upload assets
+        if: ${{ env.NeedToSync }}
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ env.RELEASE_NAME }}
+          tag_name: ${{ env.TAG_NAME }}
+          draft: false
+          prerelease: false
+          files: |
+            ./publish/geosite.dat
+            ./publish/geosite.dat.sha256sum
+            ./publish/*.mrs
+            ./publish/mrs.sha256sum
+        env:
+          GITHUB_TOKEN: ${{ secrets.CLASH_RULE_PAT }}
