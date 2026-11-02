@@ -16,12 +16,21 @@ var (
 	datName      = flag.String("datname", "geosite.dat", "Name of the generated dat file")
 	outputPath   = flag.String("outputpath", "./publish", "Output path to the generated files")
 	exportLists  = flag.String("exportlists", "category-ads-all,tld-cn,cn,geolocation-cn,tld-!cn,geolocation-!cn,private,apple,icloud,google,steam", "Lists to be exported in plaintext format, separated by ',' comma")
+	mrsRulesPath = flag.String("mrsrulespath", "", "Path to normalized category rule files to convert to MRS")
 	excludeAttrs = flag.String("excludeattrs", "cn@!cn@ads,geolocation-cn@!cn@ads,geolocation-!cn@cn@ads", "Exclude rules with certain attributes in certain lists, seperated by ',' comma, support multiple attributes in one list. Example: geolocation-!cn@cn@ads,geolocation-cn@!cn")
 	toGFWList    = flag.String("togfwlist", "geolocation-!cn", "List to be exported in GFWList format")
 )
 
 func main() {
 	flag.Parse()
+
+	if *mrsRulesPath != "" {
+		if err := GenerateCategorizedMRS(*mrsRulesPath, *outputPath); err != nil {
+			fmt.Println("Failed:", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	dir := GetDataDir()
 	listInfoMap := make(ListInfoMap)

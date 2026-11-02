@@ -58,7 +58,11 @@ jobs:
         run: |
           go run ./ \
             --datapath=./domain-list-community/data \
-            --exportlists=category-ads-all,tld-cn,cn,geolocation-cn,tld-!cn,geolocation-!cn,private,apple,icloud,google,steam
+            --exportlists=icloud,private,tld-!cn
+
+      - name: Generate Clash rule categories
+        if: ${{ env.NeedToSync }}
+        run: bash ./.github/scripts/generate-rules.sh ./publish
 
       - name: Generate sha256 hashsum
         if: ${{ env.NeedToSync }}
@@ -66,6 +70,7 @@ jobs:
           cd publish || exit 1
           sha256sum geosite.dat > geosite.dat.sha256sum
           sha256sum *.mrs > mrs.sha256sum
+          sha256sum *.txt > rules.sha256sum
 
       - name: Git push assets to "release" branch
         if: ${{ env.NeedToSync }}
@@ -91,7 +96,9 @@ jobs:
           files: |
             ./publish/geosite.dat
             ./publish/geosite.dat.sha256sum
+            ./publish/*.txt
             ./publish/*.mrs
             ./publish/mrs.sha256sum
+            ./publish/rules.sha256sum
         env:
           GITHUB_TOKEN: ${{ secrets.CLASH_RULE_PAT }}
