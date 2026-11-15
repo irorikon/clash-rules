@@ -3,7 +3,7 @@ module github.com/Loyalsoldier/domain-list-custom
 go 1.25.12
 
 require (
-	github.com/metacubex/mihomo v1.19.33
+	github.com/metacubex/mihomo v1.19.34
 	github.com/v2fly/v2ray-core/v5 v5.52.0
 	google.golang.org/protobuf v1.36.11
 )
@@ -25,8 +25,8 @@ require (
 	github.com/metacubex/http v0.1.8 // indirect
 	github.com/metacubex/mlkem v0.1.0 // indirect
 	github.com/metacubex/randv2 v0.2.0 // indirect
-	github.com/metacubex/sing v0.5.8 // indirect
-	github.com/metacubex/tfo-go v0.0.0-20260623020846-376a77860b8c // indirect
+	github.com/metacubex/sing v0.5.9 // indirect
+	github.com/metacubex/tfo-go v0.0.0-20261026151606-08d83ec08c84 // indirect
 	github.com/metacubex/tls v0.1.9 // indirect
 	github.com/metacubex/wireguard-go v0.0.0-20250820062549-a6cecdd7f57f // indirect
 	github.com/miekg/dns v1.1.72 // indirect
